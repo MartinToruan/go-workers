@@ -1,0 +1,10 @@
+# idea
+.idea
+.vscode
+
+# app specific vendor
+vendor
+
+# log
+debug.log
+error.log

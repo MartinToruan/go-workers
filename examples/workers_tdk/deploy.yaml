@@ -1,0 +1,15 @@
+#deployment configuration
+app:
+    appName: workers_tdk
+    version: latest
+    exposedPort: 8000
+    #change the version accordingly
+owner:
+    teamName: group_chat
+    projectID: devcamp-tokopedia 
+    #change the projectID accordingly
+    hostname: asia.gcr.io
+    #change the hostname accordingly
+    deployServer: http://35.240.225.149:9669
+    #change the deploy server accordingly
+    teamHash: inserthashhere

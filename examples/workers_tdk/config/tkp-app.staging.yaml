@@ -1,0 +1,26 @@
+server:
+  http_address: ":8000"
+  grpc_address: ":8090"
+
+log:
+  level: info
+  error_path: /var/log/workers_tdk/error.log # classic logging, log not streamed
+  debug_path: /var/log/workers_tdk/debug.log # classic logging, log not streamed
+
+resource:
+  database:
+    max_conns: 100
+    max_idle_conns: 10
+    max_retry: 5
+    connect:
+    - name: "toped"
+      driver: "postgres"
+      master: "postgres://toped:toped@localhost:5432?sslmode=disable"
+      follower: "postgres://toped:toped@localhost:5432?sslmode=disable"
+  redis:
+    max_active_conn: 100
+    max_idle_conn: 10
+    timeout: 100
+    connect:
+    - name: rates
+      address: 127.0.0.1:6379
