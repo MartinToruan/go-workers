@@ -22,7 +22,7 @@ func Init(app *app.App) error {
 	cfg = config.GetConfig()
 
 	//set Workers
-	workers = w.NewWorkers(50, 2056)
+	workers = w.NewWorkers(100, 5052)
 	workers.Run()
 
 	//set Worker Listener

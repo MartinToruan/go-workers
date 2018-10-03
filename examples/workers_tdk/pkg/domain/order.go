@@ -39,7 +39,8 @@ type OrderResourceItf interface {
 	InsertOrder(*Order) error
 }
 
-type OrderResource struct{}
+type OrderResource struct {
+}
 
 func (rsc OrderResource) InsertOrder(order *Order) error {
 

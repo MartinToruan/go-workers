@@ -16,8 +16,8 @@ See examples to use this with **TDK - REST/ GRPC**
 1. Create Workers Pool
 ```go
   //Spawn 50 workers, buffer size = 2056 job channels
-  numOfWorkers := 50
-  channelBuffer := 2056
+  numOfWorkers := uint(50)
+  channelBuffer := uint(2056)
 
   workers := NewWorkers(numOfWorkers, channelBuffer)
   workers.Run()
@@ -44,9 +44,19 @@ go func() {
       go workers.PushJob(uint(j), uint8(retries), func() error {
         //example of heavy task
         time.Sleep(randDuration)
+        
+        if(j > numOfJobs*0.75){
+          return errors.New("should retry")
+        }
         return nil
       })
   }
   //forever loop
-  for { }
+  // create term so the app didn't exit
+  term := make(chan os.Signal, 1)
+  signal.Notify(term, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+  select {
+  case <-term:
+    log.Println("😥 Signal terminate detected")
+  }
 ```

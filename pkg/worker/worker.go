@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -52,9 +51,9 @@ func (w WorkerImpl) Run() {
 }
 
 func (w WorkerImpl) PushJob(jobID uint, retries uint8, f func() error) {
-	w.wg.Add(1)
 	select {
 	case w.JobChannel <- w.Job(jobID, retries, f):
+		w.wg.Add(1)
 	default:
 	}
 }
@@ -70,11 +69,10 @@ func (w WorkerImpl) Job(jobID uint, retries uint8, f func() error) *Job {
 
 func (w WorkerImpl) ConsumeJob(workerID uint, jobs <-chan *Job, errors chan<- error) {
 	for job := range jobs {
-		fmt.Println("Exec : JobID", job.ID, "workerID", workerID)
-		w.wg.Done()
+		// fmt.Println("Exec : JobID", job.ID, "workerID", workerID)
 		if err := job.F(); err != nil {
 			if job.Retries > 0 {
-				fmt.Println("Retry : JobID", job.ID)
+				// fmt.Println("Retry : JobID", job.ID)
 				w.PushJob(job.ID, uint8(job.Retries-1), job.F)
 			} else {
 				select {
@@ -83,6 +81,7 @@ func (w WorkerImpl) ConsumeJob(workerID uint, jobs <-chan *Job, errors chan<- er
 				}
 			}
 		}
+		w.wg.Done()
 	}
 }
 
