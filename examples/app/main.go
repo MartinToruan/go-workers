@@ -12,8 +12,8 @@ import (
 )
 
 func main() {
-	numOfWorkers := uint(50)
-	channelBuffer := uint(2056)
+	numOfWorkers := uint(5)
+	channelBuffer := uint(512)
 
 	workers := w.NewWorkers(numOfWorkers, channelBuffer)
 	workers.Run()
@@ -25,7 +25,7 @@ func main() {
 		}
 	}()
 
-	numOfJobs := 5000
+	numOfJobs := 1000
 
 	for j := 0; j < numOfJobs; j++ {
 		//redeclare to be accessible in the closure
