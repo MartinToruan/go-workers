@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -55,6 +56,7 @@ func (w WorkerImpl) PushJob(jobID uint, retries uint8, f func() error) {
 	case w.JobChannel <- w.Job(jobID, retries, f):
 		w.wg.Add(1)
 	default:
+		fmt.Printf("dropping job of %v\n", jobID)
 	}
 }
 
