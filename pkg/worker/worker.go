@@ -20,8 +20,8 @@ type Worker interface {
 }
 
 type WorkerImpl struct {
-	wg           *sync.WaitGroup
-	maxWorkers   uint
+	WG           *sync.WaitGroup
+	MaxWorkers   uint
 	JobChannel   chan *Job
 	ErrorChannel chan error
 }
@@ -35,8 +35,8 @@ type Job struct {
 func NewWorkers(maxWorkers uint, size uint) Worker {
 	once.Do(func() {
 		worker = &WorkerImpl{
-			wg:           &wg,
-			maxWorkers:   maxWorkers,
+			WG:           &wg,
+			MaxWorkers:   maxWorkers,
 			JobChannel:   make(chan *Job, size),
 			ErrorChannel: make(chan error, size),
 		}
@@ -45,22 +45,23 @@ func NewWorkers(maxWorkers uint, size uint) Worker {
 }
 
 func (w WorkerImpl) Run() {
-	for i := 0; i < int(w.maxWorkers); i++ {
+	for i := 0; i < int(w.MaxWorkers); i++ {
 		go w.ConsumeJob(uint(i), w.JobChannel, w.ErrorChannel)
 	}
-	w.wg.Wait()
+	w.WG.Wait()
 }
 
 func (w WorkerImpl) PushJob(jobID uint, retries uint8, f func() error) {
 	select {
 	case w.JobChannel <- w.Job(jobID, retries, f):
-		w.wg.Add(1)
 	default:
+		w.WG.Done()
 		fmt.Printf("dropping job of %v\n", jobID)
 	}
 }
 
 func (w WorkerImpl) Job(jobID uint, retries uint8, f func() error) *Job {
+	w.WG.Add(1)
 	return &Job{ID: jobID, Retries: retries, F: func() error {
 		if err := f(); err != nil {
 			return err
@@ -83,7 +84,7 @@ func (w WorkerImpl) ConsumeJob(workerID uint, jobs <-chan *Job, errors chan<- er
 				}
 			}
 		}
-		w.wg.Done()
+		w.WG.Done()
 	}
 }
 
