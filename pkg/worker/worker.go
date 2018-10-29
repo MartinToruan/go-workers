@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -13,7 +12,8 @@ var (
 
 type Worker interface {
 	Run()
-	PushJob(jobID uint, retries uint8, f func() error)
+	Coordinator()
+	PushJob(jobID uint, retries uint8, f JobFunc)
 	ConsumeJob(workerID uint, jobs <-chan *Job, errors chan<- error)
 	PollJob() chan error
 	Close()
@@ -22,23 +22,29 @@ type Worker interface {
 type WorkerImpl struct {
 	WG           *sync.WaitGroup
 	MaxWorkers   uint
-	JobChannel   chan *Job
+	JobEntry     chan *Job
+	JobExec      chan *Job
 	ErrorChannel chan error
+	Pipeline     []*Job
 }
+
+type JobFunc func() error
 
 type Job struct {
 	ID      uint
 	Retries uint8
-	F       func() error
+	Func    JobFunc
 }
 
-func NewWorkers(maxWorkers uint, size uint) Worker {
+func NewWorkers(maxWorkers uint) Worker {
 	once.Do(func() {
 		worker = &WorkerImpl{
 			WG:           &wg,
 			MaxWorkers:   maxWorkers,
-			JobChannel:   make(chan *Job, size),
-			ErrorChannel: make(chan error, size),
+			JobEntry:     make(chan *Job),
+			JobExec:      make(chan *Job),
+			ErrorChannel: make(chan error),
+			Pipeline:     nil,
 		}
 	})
 	return worker
@@ -46,23 +52,31 @@ func NewWorkers(maxWorkers uint, size uint) Worker {
 
 func (w WorkerImpl) Run() {
 	for i := 0; i < int(w.MaxWorkers); i++ {
-		go w.ConsumeJob(uint(i), w.JobChannel, w.ErrorChannel)
+		go w.ConsumeJob(uint(i), w.JobExec, w.ErrorChannel)
 	}
+	go w.Coordinator()
 	w.WG.Wait()
 }
 
-func (w WorkerImpl) PushJob(jobID uint, retries uint8, f func() error) {
-	select {
-	case w.JobChannel <- w.Job(jobID, retries, f):
-	default:
-		w.WG.Done()
-		fmt.Printf("dropping job of %v\n", jobID)
+func (w WorkerImpl) Coordinator() {
+	for {
+		select {
+		case newJob := <-w.JobEntry:
+			var jobFromPipeline *Job
+			w.Pipeline = append(w.Pipeline, newJob)
+			jobFromPipeline, w.Pipeline = w.Pipeline[0], w.Pipeline[1:]
+			w.JobExec <- jobFromPipeline
+		}
 	}
 }
 
-func (w WorkerImpl) Job(jobID uint, retries uint8, f func() error) *Job {
+func (w WorkerImpl) PushJob(jobID uint, retries uint8, f JobFunc) {
 	w.WG.Add(1)
-	return &Job{ID: jobID, Retries: retries, F: func() error {
+	w.JobEntry <- w.Job(jobID, retries, f)
+}
+
+func (w WorkerImpl) Job(jobID uint, retries uint8, f JobFunc) *Job {
+	return &Job{ID: jobID, Retries: retries, Func: func() error {
 		if err := f(); err != nil {
 			return err
 		}
@@ -72,19 +86,14 @@ func (w WorkerImpl) Job(jobID uint, retries uint8, f func() error) *Job {
 
 func (w WorkerImpl) ConsumeJob(workerID uint, jobs <-chan *Job, errors chan<- error) {
 	for job := range jobs {
-		// fmt.Println("Exec : JobID", job.ID, "workerID", workerID)
-		if err := job.F(); err != nil {
+		if err := job.Func(); err != nil {
 			if job.Retries > 0 {
-				// fmt.Println("Retry : JobID", job.ID)
-				w.PushJob(job.ID, uint8(job.Retries-1), job.F)
+				go w.PushJob(job.ID, uint8(job.Retries-1), job.Func)
 			} else {
-				select {
-				case errors <- err:
-				default:
-				}
+				errors <- err
 			}
+			w.WG.Done()
 		}
-		w.WG.Done()
 	}
 }
 
@@ -93,6 +102,7 @@ func (w WorkerImpl) PollJob() chan error {
 }
 
 func (w WorkerImpl) Close() {
-	close(w.JobChannel)
+	close(w.JobEntry)
+	close(w.JobExec)
 	close(w.ErrorChannel)
 }
