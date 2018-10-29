@@ -7,15 +7,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 	w "workers/pkg/worker"
 )
 
 func main() {
-	numOfWorkers := uint(5)
-	channelBuffer := uint(512)
+	numOfWorkers := uint(10)
 
-	workers := w.NewWorkers(numOfWorkers, channelBuffer)
+	workers := w.NewWorkers(numOfWorkers)
 	workers.Run()
 
 	//create a listener to queued jobs
@@ -25,22 +23,22 @@ func main() {
 		}
 	}()
 
-	numOfJobs := 1000
+	numOfJobs := 1000000
 
 	for j := 0; j < numOfJobs; j++ {
 		//redeclare to be accessible in the closure
 		jobID := j
-		retries := 1
-		randDuration := time.Duration(jobID) * time.Millisecond
+		retries := 2
+		// randDuration := time.Duration(jobID) * time.Millisecond
 
 		//job closure
 		job := func() error {
-			fmt.Println("jobID", jobID, "waits for", randDuration)
 			//example of heavy task
-			time.Sleep(randDuration)
-
+			// time.Sleep(randDuration)
+			fmt.Printf("job : %v execute \n", jobID)
+			//example of job retries
 			if jobID > int(numOfJobs*3/4) {
-				return errors.New(fmt.Sprintf("jobID %v more should retry", jobID))
+				return errors.New(fmt.Sprintf("job : %v failed to execute", jobID))
 			}
 			return nil
 		}
