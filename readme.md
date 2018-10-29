@@ -17,9 +17,8 @@ See examples to use this with **TDK - REST/ GRPC**
 ```go
   //Spawn 50 workers, buffer size = 2056 job channels
   numOfWorkers := uint(50)
-  channelBuffer := uint(2056)
 
-  workers := NewWorkers(numOfWorkers, channelBuffer)
+  workers := NewWorkers(numOfWorkers)
   workers.Run()
 ```
 
@@ -44,7 +43,7 @@ go func() {
       go workers.PushJob(uint(j), uint8(retries), func() error {
         //example of heavy task
         time.Sleep(randDuration)
-        
+
         if(j > numOfJobs*0.75){
           return errors.New("should retry")
         }
