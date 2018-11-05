@@ -6,10 +6,7 @@ TKP Workers is golang worker thread pool that enforces constant processing rate 
 Jobs are buffered to channel and spawned workers will consume buffered jobs concurrently.
 
 Behavior :
-1. If the channel buffer is full, the job will be disbanded.
-2. If job failed, the job will be retried by the workers.
-
-See examples to use this with **TDK - REST/ GRPC**
+If job failed, the job will be retried by the workers.
 
 ## How to use
 
@@ -50,8 +47,8 @@ go func() {
         return nil
       })
   }
-  //forever loop
-  // create term so the app didn't exit
+
+  // create signalTerm so the app didn't exit
   term := make(chan os.Signal, 1)
   signal.Notify(term, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
   select {
