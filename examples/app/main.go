@@ -43,7 +43,7 @@ func main() {
 			return nil
 		}
 
-		workers.PushJob(uint(jobID), uint8(retries), job)
+		go workers.PushJob(uint(jobID), uint8(retries), job)
 	}
 	// create term so the app didn't exit
 	term := make(chan os.Signal, 1)

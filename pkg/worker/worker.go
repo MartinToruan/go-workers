@@ -6,7 +6,6 @@ import (
 
 var (
 	once   sync.Once
-	wg     sync.WaitGroup
 	worker *WorkerImpl
 )
 
