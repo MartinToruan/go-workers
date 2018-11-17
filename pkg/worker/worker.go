@@ -92,8 +92,8 @@ func (w WorkerImpl) ConsumeJob(workerID uint, jobs <-chan *Job, errors chan<- er
 			} else {
 				errors <- err
 			}
-			w.WG.Done()
 		}
+		w.WG.Done()
 	}
 }
 
